@@ -1,0 +1,149 @@
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn import svm, metrics
+#This code compares performances between XGBoost and Support Vector Machines and we show that SVMs are more suited to this dataset than XGBoost due to the kernel trick. However, XGBoost are more robust to missing values, so we need to choose our algorithm accordingly. In a small dataset, where missing value interpolation should not be done due to the nature of the dataset, XGBoost should be used, whereas where we can interpolate data to resonable values, SVM should be used due to reasonable performance, both in terms of accuracy, and lower number of hyperparameters leading to better interpretibilty.
+
+file_path = '/home/swasti/Loan_project/loan_data.xlsx'
+loan_df = pd.read_excel(file_path)
+loan_df.head()
+
+loan_df["Gender"].replace({'Male': 1, 'Female': 0}, inplace=True)
+loan_df["Married"].replace({'No': 0, 'Yes': 1}, inplace=True)
+loan_df['Dependents'] = loan_df['Dependents'].replace('3+', '3')
+loan_df['Dependents'] = pd.to_numeric(loan_df['Dependents'], errors='coerce')
+loan_df["Education"].replace({'Graduate': 1, 'Not Graduate': 0}, inplace=True)
+loan_df["Self_Employed"].replace({'No': 0, 'Yes': 1}, inplace=True)
+loan_df["Property_Area"].replace({'Rural': 0, 'Urban': 1, "Semiurban": 2}, inplace=True)
+loan_df["Loan_Status"].replace({'N': 0, 'Y': 1}, inplace=True)
+loan_df.head()
+
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+# Assuming 'Loan_Status' is the target variable
+X = loan_df.drop(['Loan_Status','Loan_ID'], axis=1)
+y = loan_df['Loan_Status']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Create an XGBoost classifier
+model = xgb.XGBClassifier()
+
+# Fit the model to the training data
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_train)
+
+y_hat = model.predict(X_test)
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_hat)
+print("Accuracy:", accuracy)
+
+cm = metrics.confusion_matrix(y_test, y_hat)
+TN, FP, FN, TP = cm.ravel()
+print("TN={0}, FP={1}, FN={2}, TP={3}".format(TN, FP, FN, TP))
+disp = metrics.ConfusionMatrixDisplay(confusion_matrix=cm)
+disp.plot()
+plt.show()
+
+#Evaluate using the training data
+print("Accuracy on training data: ", metrics.accuracy_score(y_train, y_pred))
+print("Precision on training data:", metrics.precision_score(y_train, y_pred))
+print("Recall on training data:", metrics.recall_score(y_train, y_pred))
+
+test_predict = model.predict(X_test)
+print("Accuracy on testing data: ", metrics.accuracy_score(y_test, y_hat))
+print("Precision on testing data:", metrics.precision_score(y_test, y_hat))
+print("Recall on testing data: ", metrics.recall_score(y_test, y_hat))
+
+#checking for null values
+loan_df.isnull().sum()
+
+# Replacing null values with mode
+loan_df["Gender"].fillna(value=loan_df['Gender'].mode()[0],inplace=True)
+loan_df["Married"].fillna(value=loan_df['Married'].mode()[0],inplace=True)
+loan_df["Dependents"].fillna(value=loan_df['Dependents'].mode()[0],inplace=True)
+loan_df["Self_Employed"].fillna(value=loan_df['Self_Employed'].mode()[0],inplace=True)
+loan_df["LoanAmount"].fillna(value=loan_df['LoanAmount'].mode()[0],inplace=True)
+loan_df["Loan_Amount_Term"].fillna(value=loan_df['Loan_Amount_Term'].mode()[0],inplace=True)
+loan_df["Credit_History"].fillna(value=loan_df['Credit_History'].mode()[0],inplace=True)
+
+# Printing the correlation matrix
+loan_df = loan_df.apply(pd.to_numeric, errors='coerce')
+plt.figure(figsize=(11, 7))
+corr_matrix = loan_df.corr()
+sns.heatmap(corr_matrix, annot=True, cmap="coolwarm")
+plt.show()
+
+#removing the features not needed from the independent variable
+X=loan_df.drop(columns=['Loan_ID','Loan_Status'],axis=1)
+
+#setting the dependent variable
+Y=loan_df["Loan_Status"]
+
+X.head()
+
+#Split the data into training and test data using train_test_split() function. :
+X_train,X_test,Y_train,Y_test=train_test_split(X,Y,test_size=0.1, stratify=Y, random_state=2)
+
+print(X.shape,X_train.shape,X_test.shape)
+
+# Create an SVM model with a linear kernel:
+model = svm.SVC(kernel='linear')
+model.fit(X_train,Y_train)
+
+#Evaluate using the training data
+classifier = svm.SVC()
+classifier.fit(X_train, Y_train)
+train_predict = classifier.predict(X_train)
+print("Accuracy on training data: ", metrics.accuracy_score(Y_train, train_predict))
+print("Precision on training data:", metrics.precision_score(Y_train, train_predict))
+print("Recall on training data:", metrics.recall_score(Y_train, train_predict))
+
+model.fit(X_train,Y_train)
+
+test_predict=model.predict(X_test)
+print("Accuracy on testing data: ", metrics.accuracy_score(Y_test, test_predict))
+print("Precision on testing data:", metrics.precision_score(Y_test, test_predict))
+print("Recall on testing data: ", metrics.recall_score(Y_test, test_predict))
+
+#Display the confusion matrix
+cm = metrics.confusion_matrix(Y_test, test_predict)
+TN, FP, FN, TP = cm.ravel()
+print("TN={0}, FP={1}, FN={2}, TP={3}".format(TN, FP, FN, TP))
+disp = metrics.ConfusionMatrixDisplay(confusion_matrix=cm)
+disp.plot()
+plt.show()
+
+#Input Data(User's Input)
+test_data = pd.read_excel("/home/swasti/Loan_project/input_data.xlsx")
+
+test_data["Gender"].replace({'Male': 1, 'Female': 0}, inplace=True)
+test_data["Married"].replace({'No': 0, 'Yes': 1}, inplace=True)
+test_data["Dependents"].replace({'0': 0, '1': 1, '2': 2, '3+': 3}, inplace=True)
+test_data["Education"].replace({'Graduate': 1, 'Not Graduate': 0}, inplace=True)
+test_data["Self_Employed"].replace({'No': 0, 'Yes': 1}, inplace=True)
+test_data["Property_Area"].replace({'Rural': 0, 'Urban': 1, "Semiurban": 2}, inplace=True)
+test_data["Loan_Status"].replace({'N': 0, 'Y': 1}, inplace=True)
+
+test_data["Gender"].fillna(value=loan_df['Gender'].mode()[0],inplace=True)
+test_data["Married"].fillna(value=loan_df['Married'].mode()[0],inplace=True)
+test_data["Dependents"].fillna(value=loan_df['Dependents'].mode()[0],inplace=True)
+test_data["Self_Employed"].fillna(value=loan_df['Self_Employed'].mode()[0],inplace=True)
+test_data["LoanAmount"].fillna(value=loan_df['LoanAmount'].mode()[0],inplace=True)
+test_data["Loan_Amount_Term"].fillna(value=loan_df['Loan_Amount_Term'].mode()[0],inplace=True)
+test_data["Credit_History"].fillna(value=loan_df['Credit_History'].mode()[0],inplace=True)
+
+M=test_data.drop(columns=['Loan_ID','Loan_Status'],axis=1)
+N=test_data["Loan_Status"]
+tm = svm.SVC(kernel='linear')
+tm.fit(M,N)
+
+classifier = svm.SVC()
+classifier.fit(M, N)
+input_predict=classifier.predict(M)
+print(input_predict)
